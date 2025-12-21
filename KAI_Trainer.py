@@ -4,17 +4,16 @@ import random
 
 #constants
 inN=1
-neuronsPerLayer=5
-layers=5
+neuronsPerLayer=10
+layers=2
 outN=1
 modelsPerGeneration=100
-errorThreshold=0.1
+errorThreshold=0.001
 errorRate=1
 gen=0
 def func(x):
     return (
-        4.2*x**2
-        + 2.5*x
+        2.5*x
         + 1.0
     )
 def average(lis):
