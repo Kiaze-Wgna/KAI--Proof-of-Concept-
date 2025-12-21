@@ -1,6 +1,6 @@
 from KAI import KAI
 import json
-import random
+import math
 
 #constants
 inN=1
@@ -13,8 +13,7 @@ errorRate=1
 gen=0
 def func(x):
     return (
-        2.5*x
-        + 1.0
+        5*x
     )
 def average(lis):
     return sum(lis)/len(lis)

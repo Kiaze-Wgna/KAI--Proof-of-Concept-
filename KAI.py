@@ -23,19 +23,19 @@ class Neuron:
         self.output=max(0,self.output)
     def returnWB(self):
         return [self.weight,self.bias]
-    def randomizeWB(self,errorRate):
-        self.weight=[
-            random.uniform(
-                max(wMin,w-(errorRate * (wMax - wMin))),
-                min(wMax,w+(errorRate * (wMax - wMin)))
+    def randomizeWB(self,errorRate,p=0.3):
+        for w in range(len(self.weight)):
+            if random.uniform(0,1)<p:
+                self.weight[w]=random.uniform(
+                    max(wMin,w-(errorRate * (wMax - wMin))),
+                    min(wMax,w+(errorRate * (wMax - wMin)))
+                    )
+        if random.uniform(0,1)<p:
+            self.bias=random.uniform(
+                max(bMin,self.bias-(errorRate * (bMax - bMin))),
+                min(bMax,self.bias+(errorRate * (bMax - bMin)))
                 )
-            for w in self.weight
-        ]
-        self.bias=random.uniform(
-            max(bMin,self.bias-(errorRate * (bMax - bMin))),
-            min(bMax,self.bias+(errorRate * (bMax - bMin)))
-            )
-
+            
 class KAI:
     def __init__(self,inN,neuron,layer,outN,weights=[]):
         self.neuron=neuron
