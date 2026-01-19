@@ -5,8 +5,16 @@ wMin=-1
 wMax=1
 bMin=0
 bMax=1
+
+def average(lis):
+    return sum(lis)/len(lis)
+
 class Neuron:
     def __init__(self,wb):
+        self.inputs=[]
+        self.ogOutput=0
+        self.output=0
+        self.gradients=[]
         if type(wb) is list:
             self.weight=wb[0]
             self.bias=wb[1]
@@ -17,27 +25,21 @@ class Neuron:
             ]
             self.bias=random.uniform(bMin,bMax)
     def calculate(self,inputs):
-        self.output=self.bias
+        self.inputs=inputs
+
+        self.ogOutput=self.bias
         for i,w in zip(inputs,self.weight):
-            self.output+=i*w
-        self.output=max(0,self.output)
+            self.ogOutput+=i*w
+        self.output=max(0,self.ogOutput)
     def returnWB(self):
         return [self.weight,self.bias]
-    def randomizeWB(self,errorRate,p=0.3):
+    def updateWB(self,learningRate):
         for w in range(len(self.weight)):
-            if random.uniform(0,1)<p:
-                self.weight[w]=random.uniform(
-                    max(wMin,w-(errorRate * (wMax - wMin))),
-                    min(wMax,w+(errorRate * (wMax - wMin)))
-                    )
-        if random.uniform(0,1)<p:
-            self.bias=random.uniform(
-                max(bMin,self.bias-(errorRate * (bMax - bMin))),
-                min(bMax,self.bias+(errorRate * (bMax - bMin)))
-                )
+            self.weight[w]-= learningRate*average(self.gradients)*self.inputs[w]
+        self.bias-= learningRate*average(self.gradients)
             
 class KAI:
-    def __init__(self,inN,neuron,layer,outN,weights=[]):
+    def __init__(self,inN,neuron,layer,outN,weights=[],learningRate=0.01):
         self.neuron=neuron
         self.layer=layer
         self.outN=outN
@@ -57,6 +59,7 @@ class KAI:
                 self.model[self.layer].append(Neuron(neuron))
             else:
                 self.model[self.layer].append(Neuron(weights[self.layer][o]))
+        self.learningRate=learningRate
     def calculate(self,inputs):
         self.inputs=inputs
         for l in range(self.layer):
@@ -70,15 +73,34 @@ class KAI:
             self.model[self.layer][o].calculate(self.inputs)
             self.outputs.append(self.model[self.layer][o].output)
         self.inputs=self.outputs
+    def distributeError(self, errorGradients):
+        for o in range(self.outN):
+            self.model[self.layer][o].gradient=errorGradients[o]
+            
+            if self.model[self.layer][o].ogOutput<=0:
+                self.model[self.layer][o].gradients.append(0)
+            else:
+                self.model[self.layer][o].gradients.append(errorGradients[o])
+        for l in reversed(range(self.layer)):
+            for n in range(self.neuron):
+                if self.model[l][n].ogOutput<=0:
+                    self.model[l][n].gradients.append(0)
+                else:
+                    total=0
+                    for nextNeuron in self.model[l+1]:
+                        total+=nextNeuron.gradients[-1] * nextNeuron.weight[n]
+                    self.model[l][n].gradients.append(total)
+
     def returnWB(self):
         return [
         [neuron.returnWB() for neuron in layer]
         for layer in self.model
         ]
-    def randomizeWB(self,errorRate):
+    def updateWB(self):
         for layer in self.model:
             for neuron in layer:
-                neuron.randomizeWB(errorRate)
+                neuron.updateWB(self.learningRate)
+                neuron.gradients=[]
 
 #weights=[[ [[1],5], [[2],5], [[3],5] ],
 #         [ [[1,2,3],5], [[1,2,3],5], [[1,2,3],5] ],

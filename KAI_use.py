@@ -8,5 +8,5 @@ outN=1
 with open("KAIWB.txt", "r") as f:
     Wb=json.load(f)
     model=KAI(inN,neuronsPerLayer,layers,outN,Wb)
-model.calculate([999])
+model.calculate([3])
 print(model.outputs)
