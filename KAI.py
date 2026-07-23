@@ -110,6 +110,8 @@ class KAI:
                 else:
                     self.model[l].append(Neuron(self.layer[l][0], wb=weights[l][n]))
     def calculate(self, inputs):
+        if len(inputs) != self.inN:
+            raise ValueError(f"Expected {self.inN} inputs, but received {len(inputs)} inputs.")
         self.inputs = inputs
         for l in range(len(self.layer)):
             self.outputs = []
