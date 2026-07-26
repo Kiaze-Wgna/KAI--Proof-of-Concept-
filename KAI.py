@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import random
 import math
 
@@ -5,11 +6,19 @@ import math
 bMin=-0.1
 bMax=0.1
 
-def average(lis):
-    return sum(lis) / len(lis)
+LINEAR = 0
+LEAKY_RELU = 1
+SIGMOID = 2
+TANH = 3
+
+@dataclass
+class TrainingData:
+    x_index: int
+    inputs: list
+    outputs: list
 
 class Neuron:
-    # 0: Linear 1: Leaky ReLu
+    # 0: Linear 1: Leaky ReLU 2: Sigmoid 3: Tanh
     def __init__(self, ntype, wb=None, inN=None, outN=None):
         self.inputs = []
         self.preActivation = 0
@@ -22,9 +31,9 @@ class Neuron:
         else:
             if inN is None or outN is None:
                 raise ValueError("Not enough information was given to create Neuron")
-            if self.ntype == 1: #He Initialization
+            if self.ntype in [LEAKY_RELU]: #He Initialization
                 lim = math.sqrt(6 / inN)
-            elif self.ntype == 0: #Xavier Initialization
+            elif self.ntype in [LINEAR, SIGMOID, TANH]: #Xavier Initialization
                 lim = math.sqrt(6 / (inN + outN))
             else:
                 raise TypeError("Neuron Type Undefined")
@@ -41,21 +50,29 @@ class Neuron:
         self.biasVelocity = 0
     def calculate(self, inputs):
         self.inputs = inputs
-
         self.preActivation = self.bias
         for i,w in zip(inputs, self.weight):
             self.preActivation += i*w
-        if self.ntype == 1:
+        if self.ntype == LINEAR:
+            self.output = self.preActivation
+        elif self.ntype == LEAKY_RELU:
             if self.preActivation > 0:
                 self.output = self.preActivation
             else:
                 self.output = 0.01 * self.preActivation
-        else:
-            self.output = self.preActivation
+        elif self.ntype == SIGMOID:
+            self.output = 1 / (1 + math.exp(-self.preActivation))
+        elif self.ntype == TANH:
+            self.output = math.tanh(self.preActivation)
     def activationDerivative(self):
-        if self.ntype == 1:
+        if self.ntype == LINEAR:
+            return 1
+        elif self.ntype == LEAKY_RELU:
             return 1 if self.preActivation > 0 else 0.01
-        return 1
+        elif self.ntype == SIGMOID:
+            return self.output * (1 - self.output)
+        elif self.ntype == TANH:
+            return 1 - self.output ** 2
     def returnWB(self):
         return [self.weight, self.bias]
     def updateWB(self, learningRate, momentum):
@@ -84,20 +101,15 @@ class Neuron:
         self.batchSize = 0
             
 class KAI:
-    def __init__(self, inN, layer, weights=[], learningRate=0.01, momentum=0):
-        self.layer = layer
-        self.inN = inN
-        self.learningRate = learningRate
-        self.momentum = momentum
-        self.previousWB = []
-        self.model = []
-        self.initiateModel(weights)
-    def initiateModel(self, weights):
+    def __init__(self, inN, layer, weights=None, learningRate=0.01, momentum=0):
+        self.initiateModel((inN, layer, weights, learningRate, momentum))
+    def initiateModel(self, storedModel):
+        self.inN, self.layer, weights, self.learningRate, self.momentum = storedModel
         self.model = []
         for l in range(len(self.layer)):
             self.model.append([])
             for n in range(self.layer[l][1]):
-                if weights == []:
+                if weights is None:
                     if l == 0:
                         inN = self.inN
                     else:
@@ -136,16 +148,27 @@ class KAI:
                 
                 self.model[l][n].biasGradient += self.model[l][n].delta
                 self.model[l][n].batchSize += 1
-    def returnWB(self):
-        return [
+    def train(self, trainingDataSet, batchSize, lossFunction, gradientsFunction):
+        errors=[]
+        random.shuffle(trainingDataSet)
+        currentSample = 0
+        for trainingData in trainingDataSet:
+            self.calculate(trainingData.inputs)
+            errors.append(lossFunction(self.outputs, trainingData.outputs))
+            self.distributeError(gradientsFunction(self.outputs, trainingData.outputs))
+            currentSample += 1
+            if currentSample == batchSize:
+                currentSample = 0
+                self.updateWB()
+        if currentSample != 0:
+            self.updateWB()
+        return sum(errors) / len(errors)
+    def storeModel(self):
+        return (self.inN, self.layer,[
             [neuron.returnWB() for neuron in layer]
             for layer in self.model
-        ]
+        ], self.learningRate, self.momentum)
     def updateWB(self):
-        self.previousWB=self.returnWB()
         for layer in self.model:
             for neuron in layer:
                 neuron.updateWB(self.learningRate, self.momentum)
-    def rollback(self):
-        self.initiateModel(self.previousWB)
-        

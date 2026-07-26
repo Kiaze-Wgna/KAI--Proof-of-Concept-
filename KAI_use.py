@@ -1,10 +1,8 @@
 from KAI import KAI
 import json
 
-inN=1
-layers = [[1, 5], [1, 5], [0, 1]]
 with open("KAIWB.txt", "r") as f:
-    Wb=json.load(f)
-    model=KAI(inN,layers,Wb)
+    inN, layers, wb, learningRate, momentum=json.load(f)
+    model=KAI(inN, layers, wb, learningRate, momentum)
 model.calculate([3])
 print(model.outputs)
