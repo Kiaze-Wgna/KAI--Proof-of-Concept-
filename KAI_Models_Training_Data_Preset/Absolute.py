@@ -42,4 +42,6 @@ trainingPreset = KAI_setup(
     trainingDataSet=trainingDataSet,
     loss_function=mse_loss,
     gradients_function=mse_gradients,
+    size_per_generation=1,
+    errorThreshold=0.001
 )
